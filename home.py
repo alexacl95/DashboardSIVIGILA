@@ -7,7 +7,7 @@ import json
 st.set_page_config(
     page_title='Visualización de Datos: SIVIGILA',
     layout='wide',
-    page_icon=':ambulance:'
+    page_icon='📊'
 )
 
 # --------- CARGA DE DATOS (cacheada) ----------
@@ -77,7 +77,7 @@ with col1:
     casos_dep = dfFilter.groupby("Departamento_ocurrencia").size().reset_index(name="conteo")
     casos_dep = casos_dep.sort_values("conteo", ascending=False)
     if not casos_dep.empty:
-        fig = px.bar(casos_dep[0:5], x='Departamento_ocurrencia', y='conteo')
+        fig = px.bar(casos_dep[0:5], x='Departamento_ocurrencia', y='conteo', text_auto='.2s')
         st.plotly_chart(fig, use_container_width=True)
 
 # --- Col2: Mapa coroplético
