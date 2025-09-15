@@ -14,7 +14,7 @@ st.set_page_config(
 @st.cache_data
 def load_data():
     df = pd.read_json("Datos_360.json")
-    df['FEC_CON'] = pd.to_datetime(df['FEC_CON'], errors="coerce")
+    df['FEC_NOT'] = pd.to_datetime(df['FEC_NOT'], errors="coerce")
     return df
 
 @st.cache_data
@@ -29,30 +29,37 @@ with st.spinner("Cargando datos..."):
 # -------- SIDEBAR: FILTROS --------
 st.sidebar.title("Filtros")
 
+# Evento epidemiológico
+Evetos = df['Nombre_evento'].unique()
+EventoElegido = st.sidebar.selectbox("Evento", Evetos)
+
+# filtro por evento
+dfEvento = df[df["Nombre_evento"] == EventoElegido]
+
 # Rango de fechas dinámico
-fecha_min = df["FEC_CON"].min().date()
-fecha_max = df["FEC_CON"].max().date()
+fecha_min = dfEvento["FEC_NOT"].min().date()
+fecha_max = dfEvento["FEC_NOT"].max().date()
 rango = st.sidebar.date_input("Rango de fechas", [fecha_min, fecha_max])
 
 # Departamentos
-Departamentos = np.sort(df["Departamento_ocurrencia"].dropna().unique())
+Departamentos = np.sort(dfEvento["Departamento_ocurrencia"].dropna().unique())
 Departamentos = np.insert(Departamentos, 0, "Todos")
 opcionesDepartamento = st.sidebar.multiselect("Departamentos", Departamentos, default=["Todos"])
 
 # Municipios dependientes del departamento
 if "Todos" in opcionesDepartamento:
-    dfDep = df[["Departamento_ocurrencia", "Municipio_ocurrencia"]]
+    dfDep = dfEvento[["Departamento_ocurrencia", "Municipio_ocurrencia"]]
 else:
-    dfDep = df[df["Departamento_ocurrencia"].isin(opcionesDepartamento)]
+    dfDep = dfEvento[dfEvento["Departamento_ocurrencia"].isin(opcionesDepartamento)]
 
 Municipios = np.sort(dfDep["Municipio_ocurrencia"].dropna().unique())
 Municipios = np.insert(Municipios, 0, "Todos")
 opcionesMunicipios = st.sidebar.multiselect("Municipios", Municipios, default=["Todos"])
 
 # -------- FILTRADO DE DATOS ----------
-dfFilter = df[
-    (df['FEC_CON'] >= pd.to_datetime(rango[0])) &
-    (df['FEC_CON'] <= pd.to_datetime(rango[1]))
+dfFilter = dfEvento[
+    (dfEvento['FEC_NOT'] >= pd.to_datetime(rango[0])) &
+    (dfEvento['FEC_NOT'] <= pd.to_datetime(rango[1]))
 ]
 
 if "Todos" not in opcionesDepartamento:
@@ -73,7 +80,7 @@ st.metric("Total casos", f"{total_casos:,}")
 col1, col2, col3 = st.columns([2,3,2])
 
 with col1:
-    st.subheader("Top departamentos")
+    st.subheader("Departamentso con más casos")
     casos_dep = dfFilter.groupby("Departamento_ocurrencia").size().reset_index(name="conteo")
     casos_dep = casos_dep.sort_values("conteo", ascending=False)
     if not casos_dep.empty:
@@ -82,7 +89,7 @@ with col1:
 
 # --- Col2: Mapa coroplético
 with col2:
-    st.subheader("Mapa de departamento")
+    st.subheader("Conteo de casos por departamento")
     dfAux = (
         dfFilter.groupby("Departamento_ocurrencia")
         .size()
@@ -114,8 +121,8 @@ with col2:
 with col3:
     st.subheader("Tendencia temporal")
     if not dfFilter.empty:
-        dfTime = dfFilter.groupby("INI_SIN").size().reset_index(name="conteo")
-        fig = px.area(dfTime, x = "INI_SIN", y = "conteo", title = "",
+        dfTime = dfFilter.groupby("FEC_NOT").size().reset_index(name="conteo")
+        fig = px.area(dfTime, x = "FEC_NOT", y = "conteo", title = "",
                       range_x=[pd.to_datetime(rango[0]), pd.to_datetime(rango[1])])
         st.plotly_chart(fig, use_container_width=True)
 
@@ -125,14 +132,29 @@ st.subheader("Distribuciones y Tablas")
 c1, c2 = st.columns([2,3])
 
 with c1:
-    categoria = st.radio("Variable de interés", ["SEXO", "PAC_HOS", "AREA"], horizontal=True)
+    categoria = st.radio("Variable de interés", ["SEXO", "PAC_HOS", "AREA","PER_ETN"], horizontal=True)
     dfAux = dfFilter.groupby(categoria).size().reset_index(name="Conteo")
     fig = px.bar(dfAux, x=categoria, y="Conteo", text_auto='.2s', title=f"Distribución por {categoria}")
+    st.plotly_chart(fig, use_container_width=True)
+    dfAux = dfFilter["EDAD"].value_counts().reset_index()
+    dfAux.columns = ["EDAD", "Frecuencia"]
+
+    promedio = dfFilter["EDAD"].mean().astype(int)
+    st.metric("Edad promedio", f"{promedio:,}")
+
+    fig = px.bar(
+        dfAux.sort_values("EDAD"),
+        x="EDAD",
+        y="Frecuencia",
+        title="Frecuencia de edades",
+        labels={"Edad": "Edad (años)", "Frecuencia": "Número de casos"},
+        color="Frecuencia"
+    )
     st.plotly_chart(fig, use_container_width=True)
 
 with c2:
     st.markdown("### Tabla resumen")
-    Cols = ["SEXO", "PAC_HOS", "AREA"]
+    Cols = ["SEXO", "PAC_HOS", "AREA", "PER_ETN"]
     Columnas = st.multiselect("Variables de columna", Cols, default=["SEXO"])
     Pivot = pd.pivot_table(
         dfFilter,
