@@ -39,7 +39,11 @@ dfEvento = df[df["Nombre_evento"] == EventoElegido]
 # Rango de fechas dinámico
 fecha_min = dfEvento["FEC_NOT"].min().date()
 fecha_max = dfEvento["FEC_NOT"].max().date()
+
 rango = st.sidebar.date_input("Rango de fechas", [fecha_min, fecha_max])
+
+if len(rango) != 2:
+    rango = [fecha_min, fecha_max]
 
 # Departamentos
 Departamentos = np.sort(dfEvento["Departamento_ocurrencia"].dropna().unique())
