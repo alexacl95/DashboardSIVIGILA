@@ -74,6 +74,7 @@ st.markdown("**Fuente de datos:** [SIVIGILA](https://portalsivigila.ins.gov.co/P
             "**Contacto:** alexandra.catano@iudigital.edu.co")
 # --- Col1: KPIs rápidos
 total_casos = len(dfFilter)
+st.markdown(EventoElegido)
 st.metric("Total casos", f"{total_casos:,}")
 
 # Layout central (3 columnas principales)
