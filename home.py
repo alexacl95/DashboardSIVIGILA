@@ -89,7 +89,8 @@ with col1:
     casos_dep = dfFilter.groupby("Departamento_ocurrencia").size().reset_index(name="conteo")
     casos_dep = casos_dep.sort_values("conteo", ascending=False)
     if not casos_dep.empty:
-        fig = px.bar(casos_dep[0:5], x='Departamento_ocurrencia', y='conteo', text_auto='.2s')
+        fig = px.bar(casos_dep[0:5], x='Departamento_ocurrencia', y='conteo', text_auto='.2s',
+                     labels = {"Departamento_ocurrencia":"Departamento de ocurrencia","conteo":"Cantidad de casos"})
         st.plotly_chart(fig, use_container_width=True)
 
 # --- Col2: Mapa coroplético
@@ -117,7 +118,8 @@ with col2:
             hover_name="Departamento_ocurrencia",
             zoom=3.8,
             center={"lat": 4.6, "lon": -74.1},
-            opacity=0.6
+            opacity=0.6,
+            labels = {"conteo":"Casos"}
         )
     fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, height=400)
     st.plotly_chart(fig, use_container_width=True)
@@ -128,18 +130,35 @@ with col3:
     if not dfFilter.empty:
         dfTime = dfFilter.groupby("FEC_NOT").size().reset_index(name="conteo")
         fig = px.area(dfTime, x = "FEC_NOT", y = "conteo", title = "",
-                      range_x=[pd.to_datetime(rango[0]), pd.to_datetime(rango[1])])
+                      range_x=[pd.to_datetime(rango[0]), pd.to_datetime(rango[1])],
+                      labels = {"FEC_NOT":"Fecha de notificación","conteo":"Cantidad de casos"})
         st.plotly_chart(fig, use_container_width=True)
 
 # -------- SECCIÓN INFERIOR --------
 st.subheader("Distribuciones y Tablas")
 
 c1, c2 = st.columns([2,3])
+Cols = {"SEXO":"Sexo",
+        "PAC_HOS":"Hospitalizado",
+        "AREA":"Área de vivienda",
+        "PER_ETN":"Pertenencia étnica"}
 
 with c1:
-    categoria = st.radio("Variable de interés", ["SEXO", "PAC_HOS", "AREA","PER_ETN"], horizontal=True)
-    dfAux = dfFilter.groupby(categoria).size().reset_index(name="Conteo")
-    fig = px.bar(dfAux, x=categoria, y="Conteo", text_auto='.2s', title=f"Distribución por {categoria}")
+    categoria = st.radio("Variable de interés", list(Cols.values()), 
+        index=0, horizontal=True)
+    
+    opcion_real = [k for k, v in Cols.items() if v == categoria][0]
+    dfAux = (
+        dfFilter.groupby(opcion_real)
+        .size()
+        .reset_index(name="Conteo")
+        .sort_values("Conteo", ascending=False)  # ordenar por conteo
+    )
+
+    fig = px.bar(dfAux, x=opcion_real, y="Conteo", text_auto='.2s', title=f"Distribución por {categoria}",
+                 labels = {"SEXO":"Sexo", "PAC_HOS":"Hospitalizado",
+                           "AREA": "Área de vivienda","PER_ETN":"Pertenencia étnica",
+                           "Conteno": "Cantidad de casos"})
     st.plotly_chart(fig, use_container_width=True)
     dfAux = dfFilter["EDAD"].value_counts().reset_index()
     dfAux.columns = ["EDAD", "Frecuencia"]
@@ -159,13 +178,20 @@ with c1:
 
 with c2:
     st.markdown("### Tabla resumen")
-    Cols = ["SEXO", "PAC_HOS", "AREA", "PER_ETN"]
-    Columnas = st.multiselect("Variables de columna", Cols, default=["SEXO"])
+    # multiselect muestra las etiquetas
+    Columnas = st.multiselect(
+        "Variables de columna",
+        list(Cols.values()),
+        default=[list(Cols.values())[0]]
+    )
+    # Mapear de las etiquetas seleccionadas a las claves reales
+    opciones_reales = [k for k, v in Cols.items() if v in Columnas]
+    
     Pivot = pd.pivot_table(
         dfFilter,
         values="index",
         index=["Departamento_ocurrencia"],
-        columns=Columnas,
+        columns=opciones_reales,
         aggfunc="count"
     ).fillna(0)
     styled_pivot = Pivot.style.background_gradient(cmap="Blues").format(precision=0)
