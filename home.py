@@ -30,7 +30,7 @@ with st.spinner("Cargando datos..."):
 st.sidebar.title("Filtros")
 
 # Evento epidemiológico
-Evetos = df['Nombre_evento'].unique()
+Evetos = df['Nombre_evento'].sort_values().unique()
 EventoElegido = st.sidebar.selectbox("Evento", Evetos)
 
 # filtro por evento
@@ -105,20 +105,20 @@ with col2:
             how="left"
         )
     )
-
-    fig = px.choropleth_mapbox(
-        dfAux,
-        geojson=geojson,
-        locations="COD_DPTO_O",
-        featureidkey="properties.ID_ESPACIA",
-        color="conteo",
-        color_continuous_scale="Reds",
-        mapbox_style="carto-positron",
-        hover_name="Departamento_ocurrencia",
-        zoom=3.8,
-        center={"lat": 4.6, "lon": -74.1},
-        opacity=0.6
-    )
+    with st.spinner("Cargando mapa..."):
+        fig = px.choropleth_mapbox(
+            dfAux,
+            geojson=geojson,
+            locations="COD_DPTO_O",
+            featureidkey="properties.ID_ESPACIA",
+            color="conteo",
+            color_continuous_scale="Reds",
+            mapbox_style="carto-positron",
+            hover_name="Departamento_ocurrencia",
+            zoom=3.8,
+            center={"lat": 4.6, "lon": -74.1},
+            opacity=0.6
+        )
     fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, height=400)
     st.plotly_chart(fig, use_container_width=True)
 
