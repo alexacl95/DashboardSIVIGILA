@@ -107,14 +107,13 @@ with col2:
         )
     )
     with st.spinner("Cargando mapa..."):
-        fig = px.choropleth_mapbox(
+        fig = px.choropleth_map(
             dfAux,
             geojson=geojson,
             locations="COD_DPTO_O",
             featureidkey="properties.ID_ESPACIA",
             color="conteo",
             color_continuous_scale="Reds",
-            mapbox_style="carto-positron",
             hover_name="Departamento_ocurrencia",
             zoom=3.8,
             center={"lat": 4.6, "lon": -74.1},
