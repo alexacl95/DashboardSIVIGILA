@@ -96,7 +96,7 @@ with col1:
     if not casos_dep.empty:
         fig = px.bar(casos_dep[0:5], x='Departamento_ocurrencia', y='conteo', text_auto='.2s',
                      labels = {"Departamento_ocurrencia":"Departamento de ocurrencia","conteo":"Cantidad de casos"})
-        st.plotly_chart(fig, width='stretch')
+        st.plotly_chart(fig, config={'responsive': True})
 
 # --- Col2: Mapa coroplético
 with col2:
@@ -125,7 +125,7 @@ with col2:
             labels = {"conteo":"Casos"}
         )
     fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, height=400)
-    st.plotly_chart(fig, width='stretch')
+    st.plotly_chart(fig, config={'responsive': True})
     
 
 # --- Col3: Series de tiempo
@@ -136,7 +136,7 @@ with col3:
         fig = px.area(dfTime, x = "FEC_NOT", y = "conteo", title = "",
                       range_x=[pd.to_datetime(rango[0]), pd.to_datetime(rango[1])],
                       labels = {"FEC_NOT":"Fecha de notificación","conteo":"Cantidad de casos"})
-        st.plotly_chart(fig, width='stretch')
+        st.plotly_chart(fig, config={'responsive': True})
 
 # -------- SECCIÓN INFERIOR --------
 st.subheader("Distribuciones y Tablas")
@@ -163,7 +163,8 @@ with c1:
                  labels = {"SEXO":"Sexo", "PAC_HOS":"Hospitalizado",
                            "AREA": "Área de vivienda","PER_ETN":"Pertenencia étnica",
                            "Conteno": "Cantidad de casos"})
-    st.plotly_chart(fig, width='stretch')
+    st.plotly_chart(fig, config={'responsive': True})
+
     dfAux = dfFilter["EDAD"].value_counts().reset_index()
     dfAux.columns = ["EDAD", "Frecuencia"]
 
@@ -189,7 +190,7 @@ with c1:
             labels={"EDAD": "Edad (años)", "Frecuencia": "Número de casos"},
             color="Frecuencia"
         )
-        st.plotly_chart(fig, use_container_width=True)  
+        st.plotly_chart(fig, config={'responsive': True})  
     else:
         st.warning("No hay datos para mostrar en el gráfico de edades.")
 
