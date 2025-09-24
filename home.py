@@ -3,6 +3,8 @@ import pandas as pd
 import plotly.express as px
 import numpy as np
 import json
+import plotly.graph_objects as go
+import geopandas as gpd
 
 st.set_page_config(
     page_title='Visualización de Datos: SIVIGILA',
@@ -20,7 +22,10 @@ def load_data():
 @st.cache_data
 def load_geojson():
     with open("Departamentos.geojson", "r", encoding="utf-8") as f:
-        return json.load(f)
+        geojson = json.load(f)
+    gdf = gpd.GeoDataFrame.from_features(geojson['features'])
+    gdf['geometry'] = gdf['geometry'].simplify(tolerance=0.01, preserve_topology=True)
+    return json.loads(gdf.to_json())
 
 with st.spinner("Cargando datos..."):
     df = load_data()
@@ -91,7 +96,7 @@ with col1:
     if not casos_dep.empty:
         fig = px.bar(casos_dep[0:5], x='Departamento_ocurrencia', y='conteo', text_auto='.2s',
                      labels = {"Departamento_ocurrencia":"Departamento de ocurrencia","conteo":"Cantidad de casos"})
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
 
 # --- Col2: Mapa coroplético
 with col2:
@@ -106,8 +111,7 @@ with col2:
             how="left"
         )
     )
-    with st.spinner("Cargando mapa..."):
-        fig = px.choropleth_map(
+    fig = px.choropleth_map(
             dfAux,
             geojson=geojson,
             locations="COD_DPTO_O",
@@ -121,7 +125,8 @@ with col2:
             labels = {"conteo":"Casos"}
         )
     fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, height=400)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='stretch')
+    
 
 # --- Col3: Series de tiempo
 with col3:
@@ -131,7 +136,7 @@ with col3:
         fig = px.area(dfTime, x = "FEC_NOT", y = "conteo", title = "",
                       range_x=[pd.to_datetime(rango[0]), pd.to_datetime(rango[1])],
                       labels = {"FEC_NOT":"Fecha de notificación","conteo":"Cantidad de casos"})
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
 
 # -------- SECCIÓN INFERIOR --------
 st.subheader("Distribuciones y Tablas")
@@ -158,22 +163,35 @@ with c1:
                  labels = {"SEXO":"Sexo", "PAC_HOS":"Hospitalizado",
                            "AREA": "Área de vivienda","PER_ETN":"Pertenencia étnica",
                            "Conteno": "Cantidad de casos"})
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='stretch')
     dfAux = dfFilter["EDAD"].value_counts().reset_index()
     dfAux.columns = ["EDAD", "Frecuencia"]
 
-    promedio = dfFilter["EDAD"].mean().astype(int)
-    st.metric("Edad promedio", f"{promedio:,}")
+    if not dfFilter.empty:
+        # Calcular promedio solo si hay datos
+        promedio = dfFilter["EDAD"].mean()
+    
+        if pd.notna(promedio):  # verificar que no sea NaN
+            promedio = int(promedio)
+            st.metric("Edad promedio", f"{promedio:,}")
+        else:
+            st.metric("Edad promedio", "Sin datos")
+    else:
+        st.metric("Edad promedio", "Sin datos")
 
-    fig = px.bar(
-        dfAux.sort_values("EDAD"),
-        x="EDAD",
-        y="Frecuencia",
-        title="Frecuencia de edades",
-        labels={"Edad": "Edad (años)", "Frecuencia": "Número de casos"},
-        color="Frecuencia"
-    )
-    st.plotly_chart(fig, use_container_width=True)
+    # Gráfico solo si dfAux tiene datos
+    if not dfAux.empty:
+        fig = px.bar(
+            dfAux.sort_values("EDAD"),
+            x="EDAD",
+            y="Frecuencia",
+            title="Frecuencia de edades",
+            labels={"EDAD": "Edad (años)", "Frecuencia": "Número de casos"},
+            color="Frecuencia"
+        )
+        st.plotly_chart(fig, use_container_width=True)  
+    else:
+        st.warning("No hay datos para mostrar en el gráfico de edades.")
 
 with c2:
     st.markdown("### Tabla resumen")
@@ -194,4 +212,4 @@ with c2:
         aggfunc="count"
     ).fillna(0)
     styled_pivot = Pivot.style.background_gradient(cmap="Blues").format(precision=0)
-    st.dataframe(styled_pivot, use_container_width=True)
+    st.dataframe(styled_pivot, width='stretch')
